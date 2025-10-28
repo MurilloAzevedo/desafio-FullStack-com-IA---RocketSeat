@@ -5,14 +5,42 @@ import {
   jsonSchemaTransform,
   type ZodTypeProvider
 } from 'fastify-type-provider-zod'
-import {fastifySwagger} from '@fastify/swagger'
-import {fastifyCors} from '@fastify/cors'
+import { fastifySwagger } from '@fastify/swagger'
+import { fastifyCors } from '@fastify/cors'
 import ScalarApiReference from '@scalar/fastify-api-reference'
+import { listWebhooks } from './routes/list-webhooks'
+import {env} from './env'
 
-//min -> 31:00
+const app = fastify().withTypeProvider<ZodTypeProvider>()
 
-const app = fastify()
+app.setValidatorCompiler(validatorCompiler)
+app.setSerializerCompiler(serializerCompiler)
 
-app.listen({ port: 3333, host: '0.0.0.0' }).then(() => {
-  console.log('HTTP server running!')
+app.register(fastifyCors, {
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 })
+
+app.register(fastifySwagger, {
+  openapi: {
+    info: {
+      title: 'Webhook Inspector API',
+      description: 'API for capturing and inspecting webhook requests',
+      version: '1.0.0'
+    },
+  },
+  transform: jsonSchemaTransform,
+})
+
+app.register(ScalarApiReference, {
+  routePrefix: '/docs',
+})
+
+app.register(listWebhooks)
+
+app.listen({ port: env.PORT, host: '0.0.0.0' }).then(() => {
+  console.log('HTTP server running!')
+  console.log('Docs available at http://localhost:3333/docs')
+})
+
+//min: -19:37
